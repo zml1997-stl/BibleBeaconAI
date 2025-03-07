@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+    <section class="profile">
+        <h2>Your Profile</h2>
+        <div class="profile-details">
+            <p><strong>Email:</strong> {{ current_user.email }}</p>
+            <!-- Future enhancement: Add editable preferences -->
+            <p><em>Preferences coming soon! For now, enjoy the app’s features.</em></p>
+        </div>
+        <div class="profile-actions">
+            <a href="{{ url_for('logout') }}" class="button">Logout</a>
+        </div>
+    </section>
+{% endblock %}
