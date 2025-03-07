@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Prayer Wall{% endblock %}
+
+{% block content %}
+    <section class="prayer-wall">
+        <h2>Community Prayer Wall</h2>
+
+        <!-- Form to add a new public prayer (authenticated users only) -->
+        {% if current_user.is_authenticated %}
+            <form method="POST" action="{{ url_for('add_public_prayer') }}" class="new-prayer-form">
+                <label for="prayer-text">Share a Prayer Request:</label>
+                <textarea id="prayer-text" name="text" rows="4" placeholder="Write your prayer request here..." required></textarea>
+                <button type="submit">Post Prayer</button>
+            </form>
+        {% else %}
+            <p><a href="{{ url_for('login') }}">Log in</a> or <a href="{{ url_for('register') }}">register</a> to share a prayer request.</p>
+        {% endif %}
+
+        <!-- List of public prayers -->
+        <div class="prayer-list">
+            {% if prayers %}
+                {% for prayer in prayers %}
+                    <article class="prayer-entry">
+                        <p class="prayer-text">{{ prayer.text }}</p>
+                        <small class="timestamp">{{ prayer.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                        <div class="prayer-actions">
+                            {% if current_user.is_authenticated %}
+                                <button class="pray-button" data-prayer-id="{{ prayer.id }}">
+                                    Pray ({{ prayer.pray_count }})
+                                </button>
+                            {% else %}
+                                <span>{{ prayer.pray_count }} people prayed</span>
+                            {% endif %}
+                        </div>
+                        {% if prayer.verses %}
+                            <div class="suggested-verses">
+                                <h4>Suggested Verses:</h4>
+                                <ul>
+                                    {% for verse in prayer.verses %}
+                                        <li>{{ verse.book }} {{ verse.chapter }}:{{ verse.verse_number }} - {{ verse.text }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% else %}
+                <p>No prayer requests yet. Be the first to share one!</p>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}
