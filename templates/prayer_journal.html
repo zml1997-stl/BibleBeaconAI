@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Prayer Journal{% endblock %}
+
+{% block content %}
+    <section class="prayer-journal">
+        <h2>Your Prayer Journal</h2>
+        
+        <!-- Form to add a new prayer -->
+        <form method="POST" action="{{ url_for('add_private_prayer') }}" class="new-prayer-form">
+            <label for="prayer-text">Add a New Prayer:</label>
+            <textarea id="prayer-text" name="text" rows="4" placeholder="Write your prayer here..." required></textarea>
+            <button type="submit">Save Prayer</button>
+        </form>
+
+        <!-- List of existing prayers -->
+        <div class="prayer-list">
+            {% if prayers %}
+                {% for prayer in prayers %}
+                    <article class="prayer-entry">
+                        <p class="prayer-text">{{ prayer.text }}</p>
+                        <small class="timestamp">{{ prayer.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                        {% if prayer.verses %}
+                            <div class="suggested-verses">
+                                <h4>Suggested Verses:</h4>
+                                <ul>
+                                    {% for verse in prayer.verses %}
+                                        <li>{{ verse.book }} {{ verse.chapter }}:{{ verse.verse_number }} - {{ verse.text }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% else %}
+                <p>No prayers yet. Start by adding one above!</p>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}
