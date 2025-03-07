@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+    <section class="daily-verse">
+        <h2>Daily Bible Verse</h2>
+        {% if verse %}
+            <blockquote>
+                <p>{{ verse.text }}</p>
+                <cite>{{ verse.book }} {{ verse.chapter }}:{{ verse.verse_number }}</cite>
+            </blockquote>
+            {% if current_user.is_authenticated %}
+                <button class="save-verse" data-verse-id="{{ verse.id }}">Save Verse</button>
+            {% endif %}
+        {% else %}
+            <p>No verse available today. Please check back later.</p>
+        {% endif %}
+    </section>
+    <section class="welcome">
+        <h3>Welcome to Christian AI App</h3>
+        <p>
+            Find daily inspiration, journal your prayers, and connect with a community of faith.
+            {% if not current_user.is_authenticated %}
+                <a href="{{ url_for('register') }}">Sign up</a> or 
+                <a href="{{ url_for('login') }}">log in</a> to get started!
+            {% endif %}
+        </p>
+    </section>
+{% endblock %}
