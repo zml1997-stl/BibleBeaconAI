@@ -11,20 +11,19 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key')
 db_uri = os.environ.get('DATABASE_URL', 'sqlite:///app.db').replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)  # Bind db to app at creation
+db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # Gemini API key
 app.config['GEMINI_API_KEY'] = os.environ.get('GEMINI_API_KEY', 'your-gemini-api-key-here')
 
-# Import models and AI verse suggester after db is defined
+# Import models and AI verse suggester
 from models import User, PrivatePrayer, PublicPrayer, Verse
 from ai import verse_suggester
 
-# Initialize verse suggester with db and Gemini API key
-with app.app_context():
-    verse_suggester.init(db, app.config['GEMINI_API_KEY'])
+# Initialize verse suggester
+verse_suggester.init(db, app.config['GEMINI_API_KEY'])
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -118,13 +117,7 @@ def pray(prayer_id):
     db.session.commit()
     return {'pray_count': prayer.pray_count}
 
-def init_db():
-    """Initialize the database and import verses."""
+if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        from utils import import_verses
-        import_verses()
-
-if __name__ == '__main__':
-    init_db()  # Run locally
     app.run(debug=True)
