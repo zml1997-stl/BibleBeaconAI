@@ -13,16 +13,19 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['GEMINI_API_KEY'] = os.environ.get('GEMINI_API_KEY', 'your-gemini-api-key-here')
 
-# Initialize SQLAlchemy with app
-db = SQLAlchemy(app)
+# Initialize SQLAlchemy without binding to app yet
+db = SQLAlchemy()
+
+# Bind db to app using init_app
+db.init_app(app)
 
 # Setup LoginManager
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Import models and verse suggester
+# Import models and verse suggester after db is initialized
 from models import User, PrivatePrayer, PublicPrayer, Verse
-from ai import verse_suggester  # Correct import from ai subdirectory
+from ai import verse_suggester
 
 # Initialize verse suggester
 verse_suggester.init(db, app.config['GEMINI_API_KEY'])
