@@ -13,11 +13,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['GEMINI_API_KEY'] = os.environ.get('GEMINI_API_KEY', 'your-gemini-api-key-here')
 
-# Initialize SQLAlchemy without binding to app yet
+# Initialize SQLAlchemy
 db = SQLAlchemy()
 
-# Bind db to app using init_app
-db.init_app(app)
+# Bind db to app
+with app.app_context():
+    db.init_app(app)
 
 # Setup LoginManager
 login_manager = LoginManager(app)
@@ -27,8 +28,9 @@ login_manager.login_view = 'login'
 from models import User, PrivatePrayer, PublicPrayer, Verse
 from ai import verse_suggester
 
-# Initialize verse suggester
-verse_suggester.init(db, app.config['GEMINI_API_KEY'])
+# Initialize verse suggester within app context
+with app.app_context():
+    verse_suggester.init(db, app.config['GEMINI_API_KEY'])
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -38,8 +40,9 @@ def load_user(user_id):
 def index():
     today = date.today()
     random.seed(today.toordinal())
-    verses = Verse.query.all()
-    verse = random.choice(verses) if verses else None
+    with app.app_context():  # Explicit context for safety
+        verses = Verse.query.all()
+        verse = random.choice(verses) if verses else None
     return render_template('index.html', verse=verse)
 
 @app.route('/login', methods=['GET', 'POST'])
