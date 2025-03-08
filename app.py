@@ -25,8 +25,7 @@ from models import User, PrivatePrayer, PublicPrayer, Verse
 from ai import verse_suggester
 
 # Initialize verse suggester
-with app.app_context():
-    verse_suggester.init(db, app.config['GEMINI_API_KEY'])
+verse_suggester.init(db, app.config['GEMINI_API_KEY'])
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -36,8 +35,8 @@ def load_user(user_id):
 def index():
     today = date.today()
     random.seed(today.toordinal())
-    with app.app_context():  # Ensure context for DB query
-        verse = random.choice(Verse.query.all())
+    verses = Verse.query.all()
+    verse = random.choice(verses) if verses else None
     return render_template('index.html', verse=verse)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -122,6 +121,4 @@ def pray(prayer_id):
     return jsonify({'pray_count': prayer.pray_count})
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
