@@ -1,29 +1,32 @@
 import os
 import random
 from datetime import date
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 
+# Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key')
-# Fix for Heroku Postgres: replace 'postgres://' with 'postgresql://'
 db_uri = os.environ.get('DATABASE_URL', 'sqlite:///app.db').replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['GEMINI_API_KEY'] = os.environ.get('GEMINI_API_KEY', 'your-gemini-api-key-here')
+
+# Initialize SQLAlchemy with app
 db = SQLAlchemy(app)
+
+# Setup LoginManager
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Gemini API key
-app.config['GEMINI_API_KEY'] = os.environ.get('GEMINI_API_KEY', 'your-gemini-api-key-here')
-
-# Import models and AI verse suggester
+# Import models and verse suggester after db is initialized
 from models import User, PrivatePrayer, PublicPrayer, Verse
 from ai import verse_suggester
 
 # Initialize verse suggester
-verse_suggester.init(db, app.config['GEMINI_API_KEY'])
+with app.app_context():
+    verse_suggester.init(db, app.config['GEMINI_API_KEY'])
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -33,7 +36,8 @@ def load_user(user_id):
 def index():
     today = date.today()
     random.seed(today.toordinal())
-    verse = random.choice(Verse.query.all())
+    with app.app_context():  # Ensure context for DB query
+        verse = random.choice(Verse.query.all())
     return render_template('index.html', verse=verse)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -115,7 +119,7 @@ def pray(prayer_id):
     prayer = PublicPrayer.query.get_or_404(prayer_id)
     prayer.pray_count += 1
     db.session.commit()
-    return {'pray_count': prayer.pray_count}
+    return jsonify({'pray_count': prayer.pray_count})
 
 if __name__ == '__main__':
     with app.app_context():
