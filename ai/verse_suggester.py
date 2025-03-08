@@ -1,8 +1,10 @@
 import os
+import random
 import google.generativeai as genai
 from sqlalchemy.orm import Session
+from models import Verse  # Import Verse directly
 
-# Global variables to store database and API configuration
+# Global variables
 _db = None
 _model = None
 
@@ -11,7 +13,6 @@ def init(db, api_key):
     global _db, _model
     _db = db
     genai.configure(api_key=api_key)
-    # Initialize Gemini 2.0 Flash model
     _model = genai.GenerativeModel('gemini-2.0-flash')
 
 def get_suggestions(prayer_text, num_suggestions=3):
@@ -21,7 +22,7 @@ def get_suggestions(prayer_text, num_suggestions=3):
 
     # Fetch all verses from the database
     with Session(_db) as session:
-        verses = session.query(_db.Model.classes.verses).all()
+        verses = session.query(Verse).all()  # Use Verse model directly
         verse_texts = [f"{verse.book} {verse.chapter}:{verse.verse_number} - {verse.text}" 
                       for verse in verses]
 
@@ -37,34 +38,33 @@ def get_suggestions(prayer_text, num_suggestions=3):
         response = _model.generate_content(prompt)
         suggestions_text = response.text.strip()
 
-        # Parse response (assuming Gemini returns a list like '1. John 3:16\n2. Psalm 23:1\n3. ...')
+        # Parse response
         suggested_references = []
         for line in suggestions_text.split('\n'):
-            # Extract reference (e.g., 'John 3:16' from '1. John 3:16')
             parts = line.split('. ', 1)
             if len(parts) == 2:
                 ref = parts[1].strip()
                 suggested_references.append(ref)
 
-        # Match references to verse IDs in the database
+        # Match references to verse IDs
         suggested_ids = []
         with Session(_db) as session:
             for ref in suggested_references[:num_suggestions]:
                 try:
                     book, chap_verse = ref.split(' ', 1)
                     chapter, verse_num = chap_verse.split(':')
-                    verse = session.query(_db.Model.classes.verses).filter_by(
+                    verse = session.query(Verse).filter_by(
                         book=book, chapter=int(chapter), verse_number=int(verse_num)
                     ).first()
                     if verse:
                         suggested_ids.append(verse.id)
                 except (ValueError, AttributeError):
-                    continue  # Skip invalid references
+                    continue
 
-        # If fewer suggestions than requested, randomly fill the rest
+        # Fallback to random if needed
         if len(suggested_ids) < num_suggestions:
             with Session(_db) as session:
-                all_ids = [v.id for v in verses]
+                all_ids = [v.id for v in session.query(Verse).all()]
                 remaining = set(all_ids) - set(suggested_ids)
                 suggested_ids.extend(random.sample(list(remaining), 
                                                  min(num_suggestions - len(suggested_ids), len(remaining))))
@@ -73,9 +73,6 @@ def get_suggestions(prayer_text, num_suggestions=3):
 
     except Exception as e:
         print(f"Error with Gemini API: {e}")
-        # Fallback: return random verse IDs
         with Session(_db) as session:
-            all_ids = [v.id for v in session.query(_db.Model.classes.verses).all()]
+            all_ids = [v.id for v in session.query(Verse).all()]
             return random.sample(all_ids, min(num_suggestions, len(all_ids)))
-
-import random  # Moved to bottom to avoid circular import issues with earlier usage
